@@ -297,6 +297,7 @@ class Coin extends GameObject {
 
 // Game level
 let levels = [
+    // Level 1 - Introduction
     {
         platforms: [
             // Ground platforms
@@ -324,6 +325,8 @@ let levels = [
             { x: 700, y: 420 }
         ]
     },
+    
+    // Level 2 - Gaps and Moving Platforms
     {
         platforms: [
             // Ground platforms
@@ -350,6 +353,122 @@ let levels = [
             { x: 650, y: 170 },
             { x: 300, y: 420 },
             { x: 550, y: 420 },
+            { x: 700, y: 420 }
+        ]
+    },
+    
+    // Level 3 - Vertical Climb
+    {
+        platforms: [
+            // Ground platform
+            { x: 0, y: 450, width: 800, height: 50 },
+            
+            // Vertical climb platforms
+            { x: 100, y: 380, width: 100, height: 20 },
+            { x: 250, y: 330, width: 100, height: 20 },
+            { x: 100, y: 280, width: 100, height: 20 },
+            { x: 250, y: 230, width: 100, height: 20 },
+            { x: 100, y: 180, width: 100, height: 20 },
+            { x: 250, y: 130, width: 100, height: 20 },
+            
+            // Top platforms
+            { x: 400, y: 130, width: 300, height: 20 },
+            { x: 500, y: 250, width: 100, height: 20, type: 'moving-vertical' },
+        ],
+        enemies: [
+            { x: 150, y: 410, type: 'goomba' },
+            { x: 300, y: 410, type: 'goomba' },
+            { x: 450, y: 410, type: 'koopa' },
+            { x: 130, y: 240, type: 'goomba' },
+            { x: 550, y: 90, type: 'koopa' }
+        ],
+        coins: [
+            { x: 150, y: 350 },
+            { x: 280, y: 300 },
+            { x: 130, y: 250 },
+            { x: 280, y: 200 },
+            { x: 130, y: 150 },
+            { x: 280, y: 100 },
+            { x: 450, y: 100 },
+            { x: 550, y: 100 },
+            { x: 650, y: 100 }
+        ]
+    },
+    
+    // Level 4 - Moving Platform Challenge
+    {
+        platforms: [
+            // Starting platform
+            { x: 0, y: 450, width: 150, height: 50 },
+            
+            // Moving platforms
+            { x: 200, y: 400, width: 100, height: 20, type: 'moving-horizontal' },
+            { x: 350, y: 350, width: 100, height: 20, type: 'moving-vertical' },
+            { x: 500, y: 300, width: 100, height: 20, type: 'moving-horizontal' },
+            { x: 650, y: 250, width: 100, height: 20, type: 'moving-vertical' },
+            
+            // End platform
+            { x: 700, y: 450, width: 100, height: 50 }
+        ],
+        enemies: [
+            { x: 50, y: 410, type: 'goomba' },
+            { x: 250, y: 360, type: 'koopa' },
+            { x: 400, y: 310, type: 'goomba' },
+            { x: 550, y: 260, type: 'koopa' },
+            { x: 720, y: 410, type: 'goomba' }
+        ],
+        coins: [
+            { x: 100, y: 420 },
+            { x: 250, y: 370 },
+            { x: 400, y: 320 },
+            { x: 550, y: 270 },
+            { x: 700, y: 220 },
+            { x: 750, y: 420 }
+        ]
+    },
+    
+    // Level 5 - Complex Maze
+    {
+        platforms: [
+            // Ground
+            { x: 0, y: 450, width: 150, height: 50 },
+            { x: 650, y: 450, width: 150, height: 50 },
+            
+            // Left side
+            { x: 0, y: 350, width: 100, height: 20 },
+            { x: 150, y: 300, width: 100, height: 20 },
+            { x: 0, y: 250, width: 100, height: 20 },
+            { x: 150, y: 200, width: 100, height: 20 },
+            
+            // Middle
+            { x: 300, y: 350, width: 200, height: 20 },
+            { x: 350, y: 250, width: 100, height: 20, type: 'moving-vertical' },
+            
+            // Right side
+            { x: 550, y: 300, width: 100, height: 20 },
+            { x: 650, y: 200, width: 150, height: 20 },
+            { x: 550, y: 100, width: 100, height: 20 }
+        ],
+        enemies: [
+            { x: 50, y: 410, type: 'goomba' },
+            { x: 50, y: 310, type: 'koopa' },
+            { x: 180, y: 260, type: 'goomba' },
+            { x: 50, y: 210, type: 'koopa' },
+            { x: 400, y: 310, type: 'goomba' },
+            { x: 600, y: 260, type: 'koopa' },
+            { x: 700, y: 160, type: 'goomba' },
+            { x: 600, y: 60, type: 'koopa' }
+        ],
+        coins: [
+            { x: 50, y: 320 },
+            { x: 200, y: 270 },
+            { x: 50, y: 220 },
+            { x: 200, y: 170 },
+            { x: 400, y: 320 },
+            { x: 400, y: 220 },
+            { x: 600, y: 270 },
+            { x: 700, y: 170 },
+            { x: 600, y: 70 },
             { x: 700, y: 420 }
         ]
     }
