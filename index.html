@@ -10,9 +10,10 @@
             padding: 0;
             background-color: #87CEEB;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             font-family: 'Arial', sans-serif;
         }
         
@@ -96,6 +97,37 @@
         .sprite.mushroom:before {
             content: '🍄';
         }
+        
+        #controls-info {
+            width: 800px;
+            margin: 20px auto 0;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            padding: 10px 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        #controls-info h3 {
+            color: #333;
+            margin-top: 5px;
+            border-bottom: 2px solid #aaa;
+            padding-bottom: 5px;
+        }
+        
+        #controls-info ul {
+            list-style-type: none;
+            padding: 0;
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        #controls-info li {
+            background-color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +138,15 @@
             <h1>MARIO PLATFORMER</h1>
             <button id="start-button">START GAME</button>
         </div>
+    </div>
+    
+    <div id="controls-info">
+        <h3>Controls:</h3>
+        <ul>
+            <li>← → : Move left/right</li>
+            <li>↑ or Space: Jump</li>
+            <li>Enter: Pause game</li>
+        </ul>
     </div>
     
     <script src="game.js"></script>
