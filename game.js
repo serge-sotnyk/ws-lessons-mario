@@ -11,6 +11,7 @@ let gameRunning = false;
 let coinCount = 0;
 let gamePaused = false;
 let lives = 100;
+let playerOnMovingPlatform = null; // Track if player is on a moving platform
 
 // Constants
 const GRAVITY = 0.5;
@@ -178,19 +179,15 @@ class Player extends GameObject {
 class Platform extends GameObject {
     constructor(x, y, width, height, type = 'normal') {
         super(x, y, width, height);
-        this.type = type; // 'normal', 'moving', etc.
-        this.originalX = x;
-        this.originalY = y;
-        this.moveDistance = 0;
-        this.moveSpeed = 0;
-        this.moveDirection = 1;
+        this.type = type;
         
-        if (type === 'moving-horizontal') {
+        // For moving platforms
+        if (type === 'moving-horizontal' || type === 'moving-vertical') {
+            this.moveSpeed = type === 'moving-horizontal' ? 2 : 1; // Slower vertical movement
+            this.moveDirection = 1;
             this.moveDistance = 100;
-            this.moveSpeed = 1;
-        } else if (type === 'moving-vertical') {
-            this.moveDistance = 50;
-            this.moveSpeed = 1;
+            this.originalX = x;
+            this.originalY = y;
         }
     }
     
@@ -555,6 +552,50 @@ function initLevel(levelIndex) {
     levelCompleteTimer = 0;
 }
 
+// Update game objects
+function updateGameObjects() {
+    // Update player
+    player.update();
+    
+    // If player was on a moving platform last frame, check if they're still on it
+    if (playerOnMovingPlatform) {
+        const playerBounds = player.getBounds();
+        const platformBounds = playerOnMovingPlatform.getBounds();
+        
+        // Check if player is still above the platform
+        const stillOnPlatform = playerBounds.bottom <= platformBounds.top + 5 && 
+                               playerBounds.bottom >= platformBounds.top - 5 &&
+                               playerBounds.right > platformBounds.left && 
+                               playerBounds.left < platformBounds.right;
+                               
+        if (stillOnPlatform && player.grounded) {
+            // Keep player attached to the platform
+            player.y = platformBounds.top - player.height;
+            
+            // Move with the platform
+            if (playerOnMovingPlatform.type === 'moving-horizontal') {
+                player.x += playerOnMovingPlatform.moveSpeed * playerOnMovingPlatform.moveDirection;
+            } else if (playerOnMovingPlatform.type === 'moving-vertical') {
+                player.y += playerOnMovingPlatform.moveSpeed * playerOnMovingPlatform.moveDirection;
+            }
+        } else {
+            playerOnMovingPlatform = null;
+        }
+    }
+    
+    // Update platforms
+    platforms.forEach(platform => platform.update());
+    
+    // Update enemies
+    enemies.forEach(enemy => enemy.update());
+    
+    // Update coins
+    coins.forEach(coin => coin.update());
+    
+    // Check collisions
+    checkCollisions();
+}
+
 // Check collisions
 function checkCollisions() {
     // Reset grounded state
@@ -574,24 +615,30 @@ function checkCollisions() {
             // Collision detected
             
             // Top collision (player landing on platform)
-            if (player.speedY > 0 && playerBounds.bottom - player.speedY <= platformBounds.top) {
+            if (player.speedY > 0 && playerBounds.bottom - player.speedY <= platformBounds.top + 5) {
                 player.y = platformBounds.top - player.height;
                 player.speedY = 0;
                 player.grounded = true;
                 player.jumping = false;
+                
+                // If it's a moving platform, remember it
+                if (platform.type === 'moving-horizontal' || platform.type === 'moving-vertical') {
+                    playerOnMovingPlatform = platform;
+                }
             }
-            // Bottom collision (player hitting platform from below)
-            else if (player.speedY < 0 && playerBounds.top - player.speedY >= platformBounds.bottom) {
-                player.y = platformBounds.bottom;
-                player.speedY = 0;
-            }
+            // Bottom collision (player hitting platform from below) - DISABLED to allow jumping through platforms
+            // We only check bottom collisions if player is moving downward (not jumping up)
+            // else if (player.speedY < 0 && playerBounds.top - player.speedY >= platformBounds.bottom) {
+            //     player.y = platformBounds.bottom;
+            //     player.speedY = 0;
+            // }
             // Left collision
-            else if (player.speedX > 0 && playerBounds.right - player.speedX <= platformBounds.left) {
+            else if (player.speedX > 0 && playerBounds.right - player.speedX <= platformBounds.left + 5) {
                 player.x = platformBounds.left - player.width;
                 player.speedX = 0;
             }
             // Right collision
-            else if (player.speedX < 0 && playerBounds.left - player.speedX >= platformBounds.right) {
+            else if (player.speedX < 0 && playerBounds.left - player.speedX >= platformBounds.right - 5) {
                 player.x = platformBounds.right;
                 player.speedX = 0;
             }
@@ -736,13 +783,7 @@ function gameLoop() {
     }
     
     // Update game objects
-    player.update();
-    platforms.forEach(platform => platform.update());
-    enemies.forEach(enemy => enemy.update());
-    coins.forEach(coin => coin.update());
-    
-    // Check for collisions
-    checkCollisions();
+    updateGameObjects();
     
     // Check boundaries
     if (player.x < 0) player.x = 0;
