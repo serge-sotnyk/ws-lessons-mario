@@ -2,6 +2,7 @@
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 const coinCountElement = document.getElementById('coin-count');
+const livesCountElement = document.getElementById('lives-count');
 const startScreen = document.getElementById('start-screen');
 const startButton = document.getElementById('start-button');
 
@@ -9,6 +10,7 @@ const startButton = document.getElementById('start-button');
 let gameRunning = false;
 let coinCount = 0;
 let gamePaused = false;
+let lives = 100;
 
 // Constants
 const GRAVITY = 0.5;
@@ -144,7 +146,31 @@ class Player extends GameObject {
             // Bounce slightly
             this.speedY = -5;
             
-            // Could implement lives system here
+            // Reduce lives
+            lives--;
+            livesCountElement.textContent = lives;
+            
+            // Check for game over
+            if (lives <= 0) {
+                // Reset game
+                currentLevel = 0;
+                lives = 100;
+                livesCountElement.textContent = lives;
+                initLevel(currentLevel);
+                
+                // Show game over message
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.font = '20px Arial';
+                ctx.fillText('Press ENTER to restart', canvas.width / 2, canvas.height / 2 + 20);
+                
+                gamePaused = true;
+            }
         }
     }
 }
@@ -216,6 +242,7 @@ class Enemy extends GameObject {
         this.frameX = 0;
         this.frameCount = 0;
         this.frameDelay = 10;
+        this.isDead = false;
         
         // Set emoji based on enemy type
         this.emoji = this.type === 'goomba' ? '👹' : '🐢';
@@ -239,20 +266,26 @@ class Enemy extends GameObject {
     }
     
     draw() {
-        ctx.save();
-        ctx.font = '40px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        // Draw with proper direction
-        if (this.direction === 1) {
-            ctx.scale(-1, 1);
-            ctx.fillText(this.emoji, -this.x - this.width/2, this.y + this.height/2);
-        } else {
-            ctx.fillText(this.emoji, this.x + this.width/2, this.y + this.height/2);
+        if (!this.isDead) {
+            ctx.save();
+            ctx.font = '40px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Draw with proper direction
+            if (this.direction === 1) {
+                ctx.scale(-1, 1);
+                ctx.fillText(this.emoji, -this.x - this.width/2, this.y + this.height/2);
+            } else {
+                ctx.fillText(this.emoji, this.x + this.width/2, this.y + this.height/2);
+            }
+            
+            ctx.restore();
         }
-        
-        ctx.restore();
+    }
+    
+    hit() {
+        this.isDead = true;
     }
 }
 
@@ -524,78 +557,85 @@ function initLevel(levelIndex) {
 
 // Check collisions
 function checkCollisions() {
+    // Reset grounded state
+    player.grounded = false;
+    
     // Check platform collisions
-    platforms.forEach(platform => {
+    for (let i = 0; i < platforms.length; i++) {
+        const platform = platforms[i];
         const playerBounds = player.getBounds();
         const platformBounds = platform.getBounds();
         
-        // Check if player is above the platform and falling
-        if (player.speedY > 0 &&
-            playerBounds.bottom >= platformBounds.top &&
-            playerBounds.bottom <= platformBounds.top + player.speedY + 5 &&
-            playerBounds.right > platformBounds.left &&
-            playerBounds.left < platformBounds.right) {
+        if (playerBounds.right > platformBounds.left && 
+            playerBounds.left < platformBounds.right && 
+            playerBounds.bottom > platformBounds.top && 
+            playerBounds.top < platformBounds.bottom) {
             
-            player.y = platformBounds.top - player.height;
-            player.grounded = true;
-            player.jumping = false;
+            // Collision detected
             
-            // If it's a moving platform, apply its movement to the player
-            if (platform.type === 'moving-horizontal') {
-                player.x += platform.moveSpeed * platform.moveDirection;
+            // Top collision (player landing on platform)
+            if (player.speedY > 0 && playerBounds.bottom - player.speedY <= platformBounds.top) {
+                player.y = platformBounds.top - player.height;
+                player.speedY = 0;
+                player.grounded = true;
+                player.jumping = false;
             }
-        }
-        
-        // Check for side collisions with platforms
-        else if (playerBounds.right >= platformBounds.left &&
-                 playerBounds.left <= platformBounds.right &&
-                 playerBounds.bottom > platformBounds.top &&
-                 playerBounds.top < platformBounds.bottom) {
-            
-            // Coming from left
-            if (playerBounds.right >= platformBounds.left && 
-                playerBounds.right <= platformBounds.left + Math.abs(player.speedX) + 5) {
+            // Bottom collision (player hitting platform from below)
+            else if (player.speedY < 0 && playerBounds.top - player.speedY >= platformBounds.bottom) {
+                player.y = platformBounds.bottom;
+                player.speedY = 0;
+            }
+            // Left collision
+            else if (player.speedX > 0 && playerBounds.right - player.speedX <= platformBounds.left) {
                 player.x = platformBounds.left - player.width;
                 player.speedX = 0;
             }
-            // Coming from right
-            else if (playerBounds.left <= platformBounds.right && 
-                     playerBounds.left >= platformBounds.right - Math.abs(player.speedX) - 5) {
+            // Right collision
+            else if (player.speedX < 0 && playerBounds.left - player.speedX >= platformBounds.right) {
                 player.x = platformBounds.right;
                 player.speedX = 0;
             }
         }
-    });
-    
-    // Update player's grounded state based on platform check
-    if (!player.grounded) {
-        player.grounded = checkPlayerOnPlatform();
     }
     
     // Check enemy collisions
-    enemies.forEach(enemy => {
-        if (player.intersects(enemy)) {
-            const playerBounds = player.getBounds();
-            const enemyBounds = enemy.getBounds();
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        const playerBounds = player.getBounds();
+        const enemyBounds = enemy.getBounds();
+        
+        if (playerBounds.right > enemyBounds.left && 
+            playerBounds.left < enemyBounds.right && 
+            playerBounds.bottom > enemyBounds.top && 
+            playerBounds.top < enemyBounds.bottom) {
             
-            // If player is above the enemy and falling
-            if (player.speedY > 0 && playerBounds.bottom >= enemyBounds.top && playerBounds.bottom <= enemyBounds.top + player.speedY + 10) {
-                // Remove the enemy
-                enemies = enemies.filter(e => e !== enemy);
-                
-                // Bounce the player
-                player.speedY = -8;
-            } else {
-                // Player gets hit
+            // Collision detected
+            
+            // Top collision (player jumping on enemy)
+            if (player.speedY > 0 && playerBounds.bottom - player.speedY <= enemyBounds.top + 10) {
+                player.speedY = -10; // Bounce
+                enemy.hit();
+            } 
+            // Other collision (enemy hits player)
+            else if (!enemy.isDead) {
                 player.hit();
             }
         }
-    });
+    }
     
     // Check coin collisions
-    coins.forEach(coin => {
-        if (!coin.collected && player.intersects(coin)) {
-            coin.collected = true;
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
+        const playerBounds = player.getBounds();
+        const coinBounds = coin.getBounds();
+        
+        if (playerBounds.right > coinBounds.left && 
+            playerBounds.left < coinBounds.right && 
+            playerBounds.bottom > coinBounds.top && 
+            playerBounds.top < coinBounds.bottom) {
+            
+            // Collect coin
+            coins.splice(i, 1);
             coinCount++;
             coinCountElement.textContent = coinCount + "/" + totalCoins;
             
@@ -605,28 +645,7 @@ function checkCollisions() {
                 levelCompleteTimer = 120; // 2 seconds at 60 FPS
             }
         }
-    });
-}
-
-// Function to check if player is on a platform
-function checkPlayerOnPlatform() {
-    let onPlatform = false;
-    
-    platforms.forEach(platform => {
-        const playerBounds = player.getBounds();
-        const platformBounds = platform.getBounds();
-        
-        // Check if player is standing on a platform
-        if (playerBounds.bottom >= platformBounds.top &&
-            playerBounds.bottom <= platformBounds.top + 5 &&
-            playerBounds.right > platformBounds.left &&
-            playerBounds.left < platformBounds.right) {
-            
-            onPlatform = true;
-        }
-    });
-    
-    return onPlatform;
+    }
 }
 
 // Game loop
@@ -680,6 +699,10 @@ function gameLoop() {
         }
         
         if (levelCompleteTimer <= 0) {
+            // Add a life for completing the level
+            lives++;
+            livesCountElement.textContent = lives;
+            
             if (currentLevel < levels.length - 1) {
                 // Move to next level
                 currentLevel++;
@@ -760,6 +783,8 @@ window.addEventListener('keyup', e => {
 startButton.addEventListener('click', () => {
     startScreen.style.display = 'none';
     gameRunning = true;
+    lives = 100;
+    livesCountElement.textContent = lives;
     initLevel(currentLevel);
     gameLoop();
 });
