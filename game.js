@@ -8,6 +8,7 @@ const startButton = document.getElementById('start-button');
 // Game state
 let gameRunning = false;
 let coinCount = 0;
+let gamePaused = false;
 
 // Constants
 const GRAVITY = 0.5;
@@ -368,7 +369,9 @@ let levelCompleteTimer = 0;
 const keys = {
     ArrowRight: false,
     ArrowLeft: false,
-    ArrowUp: false
+    ArrowUp: false,
+    ' ': false,    // Space key for jump
+    'Enter': false // Enter key for pause
 };
 
 // Initialize the level
@@ -419,32 +422,36 @@ function checkCollisions() {
             player.jumping = false;
             
             // If it's a moving platform, apply its movement to the player
-            if (platform.type.includes('moving')) {
-                if (platform.type === 'moving-horizontal') {
-                    player.x += platform.moveSpeed * platform.moveDirection;
-                }
+            if (platform.type === 'moving-horizontal') {
+                player.x += platform.moveSpeed * platform.moveDirection;
             }
         }
         
-        // Side collisions
-        if (player.intersects(platform) && !player.grounded) {
-            // Left collision
-            if (player.speedX > 0 && playerBounds.right > platformBounds.left && playerBounds.right < platformBounds.left + player.speedX + 5) {
+        // Check for side collisions with platforms
+        else if (playerBounds.right >= platformBounds.left &&
+                 playerBounds.left <= platformBounds.right &&
+                 playerBounds.bottom > platformBounds.top &&
+                 playerBounds.top < platformBounds.bottom) {
+            
+            // Coming from left
+            if (playerBounds.right >= platformBounds.left && 
+                playerBounds.right <= platformBounds.left + Math.abs(player.speedX) + 5) {
                 player.x = platformBounds.left - player.width;
                 player.speedX = 0;
             }
-            // Right collision
-            else if (player.speedX < 0 && playerBounds.left < platformBounds.right && playerBounds.left > platformBounds.right + player.speedX - 5) {
+            // Coming from right
+            else if (playerBounds.left <= platformBounds.right && 
+                     playerBounds.left >= platformBounds.right - Math.abs(player.speedX) - 5) {
                 player.x = platformBounds.right;
                 player.speedX = 0;
             }
-            // Top collision (hitting head)
-            else if (player.speedY < 0 && playerBounds.top < platformBounds.bottom && playerBounds.top > platformBounds.bottom + player.speedY - 5) {
-                player.y = platformBounds.bottom;
-                player.speedY = 0;
-            }
         }
     });
+    
+    // Update player's grounded state based on platform check
+    if (!player.grounded) {
+        player.grounded = checkPlayerOnPlatform();
+    }
     
     // Check enemy collisions
     enemies.forEach(enemy => {
@@ -482,9 +489,53 @@ function checkCollisions() {
     });
 }
 
+// Function to check if player is on a platform
+function checkPlayerOnPlatform() {
+    let onPlatform = false;
+    
+    platforms.forEach(platform => {
+        const playerBounds = player.getBounds();
+        const platformBounds = platform.getBounds();
+        
+        // Check if player is standing on a platform
+        if (playerBounds.bottom >= platformBounds.top &&
+            playerBounds.bottom <= platformBounds.top + 5 &&
+            playerBounds.right > platformBounds.left &&
+            playerBounds.left < platformBounds.right) {
+            
+            onPlatform = true;
+        }
+    });
+    
+    return onPlatform;
+}
+
 // Game loop
 function gameLoop() {
     if (!gameRunning) return;
+    
+    // Handle pause
+    if (keys.Enter) {
+        gamePaused = !gamePaused;
+        keys.Enter = false; // Reset to prevent toggle spam
+        
+        // Show pause message when paused
+        if (gamePaused) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('GAME PAUSED', canvas.width / 2, canvas.height / 2);
+            ctx.fillText('Press ENTER to continue', canvas.width / 2, canvas.height / 2 + 40);
+        }
+    }
+    
+    if (gamePaused) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
     
     // Clear the canvas
     ctx.fillStyle = '#6B8CFF'; // Sky blue background
@@ -533,9 +584,13 @@ function gameLoop() {
     if (keys.ArrowLeft) {
         player.speedX = -5;
     }
-    if (keys.ArrowUp) {
+    if (keys.ArrowUp || keys[' ']) {
         player.jump();
-        keys.ArrowUp = false; // Prevent holding jump
+        // Only reset the jump key if player is on the ground to prevent multiple jumps
+        if (player.grounded) {
+            keys.ArrowUp = false;
+            keys[' '] = false;
+        }
     }
     
     // Update game objects
